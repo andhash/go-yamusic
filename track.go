@@ -25,8 +25,8 @@ func (c *Client) Tracks(ctx context.Context, ids ...string) ([]Track, error) {
 }
 
 // TrackDownloadInfo lists the file variants the API offers for trackID.
-// Each item's DownloadInfoURL is the address the server returned.
-// This method does not sign that address and does not download the bytes.
+// Pass an item to [Client.FileURL] to get the CDN address of a plain file.
+// This method itself does not download the bytes.
 func (c *Client) TrackDownloadInfo(ctx context.Context, trackID string) ([]DownloadInfo, error) {
 	if trackID == "" {
 		return nil, &Error{Message: "track id is empty"}

@@ -225,8 +225,8 @@ type Like struct {
 }
 
 // DownloadInfo is one file variant from /tracks/{id}/download-info.
-// DownloadInfoURL is the address the API returned. This package does not
-// turn that address into a signed CDN URL and does not decrypt the body.
+// DownloadInfoURL is the address the API returned. [Client.FileURL] turns
+// a plain item into a CDN address. An encraw item stays encrypted.
 type DownloadInfo struct {
 	Codec           string `json:"codec"`
 	BitrateInKbps   int    `json:"bitrateInKbps"`
