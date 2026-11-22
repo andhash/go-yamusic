@@ -177,6 +177,28 @@ func TestLikeNeedsUser(t *testing.T) {
 	}
 }
 
+func TestLabelAcceptsString(t *testing.T) {
+	var one Label
+	if err := json.Unmarshal([]byte(`"Moroz"`), &one); err != nil || one.Name != "Moroz" || one.ID != "" {
+		t.Fatalf("%+v %v", one, err)
+	}
+	if err := json.Unmarshal([]byte(`{"id":"4","name":"Moroz"}`), &one); err != nil || one.Name != "Moroz" || one.ID != "4" {
+		t.Fatalf("%+v %v", one, err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"result":{"tracks":{"results":[{"id":"7","title":"Song","available":true,"albums":[{"id":3,"labels":["Moroz",{"id":"4","name":"Other"}]}]}]}}}`))
+	}))
+	defer srv.Close()
+	res, err := New("t", WithBaseURL(srv.URL)).Search(context.Background(), SearchQuery{Text: "song", Type: SearchTrack})
+	if err != nil || res.Tracks == nil || len(res.Tracks.Results) != 1 {
+		t.Fatal(err)
+	}
+	labels := res.Tracks.Results[0].Albums[0].Labels
+	if len(labels) != 2 || labels[0].Name != "Moroz" || labels[1].Name != "Other" || labels[1].ID != "4" {
+		t.Fatalf("%+v", labels)
+	}
+}
+
 func TestSearchAndSuggest(t *testing.T) {
 	var searchQuery, suggestQuery string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

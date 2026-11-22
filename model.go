@@ -1,6 +1,7 @@
 package yamusic
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 )
@@ -80,6 +81,28 @@ type Track struct {
 	ContentWarning           string   `json:"contentWarning"`
 	Artists                  []Artist `json:"artists"`
 	Albums                   []Album  `json:"albums"`
+	// Language is set only when the catalogue sends a string.
+	// A missing field, null, or another JSON type stays empty.
+	Language LangTag `json:"language,omitempty"`
+}
+
+// LangTag is a catalogue language sent as a JSON string.
+// A number or an object does not fail the track.
+type LangTag string
+
+func (t *LangTag) UnmarshalJSON(raw []byte) error {
+	raw = bytes.TrimSpace(raw)
+	if len(raw) == 0 || string(raw) == "null" || raw[0] != '"' {
+		*t = ""
+		return nil
+	}
+	var text string
+	if err := json.Unmarshal(raw, &text); err != nil {
+		*t = ""
+		return nil
+	}
+	*t = LangTag(text)
+	return nil
 }
 
 // ArtistName joins the track's artist names with a comma.
@@ -163,9 +186,34 @@ type Album struct {
 }
 
 // Label is a record label name attached to an album.
+// Search results send a label as a plain string. An album object sends {id, name}.
 type Label struct {
 	ID   ID     `json:"id"`
 	Name string `json:"name"`
+}
+
+// UnmarshalJSON accepts either a name string or an object.
+func (l *Label) UnmarshalJSON(b []byte) error {
+	b = bytes.TrimSpace(b)
+	if len(b) == 0 || bytes.Equal(b, []byte("null")) {
+		*l = Label{}
+		return nil
+	}
+	if b[0] == '"' {
+		var name string
+		if err := json.Unmarshal(b, &name); err != nil {
+			return err
+		}
+		*l = Label{Name: name}
+		return nil
+	}
+	type plain Label
+	var p plain
+	if err := json.Unmarshal(b, &p); err != nil {
+		return err
+	}
+	*l = Label(p)
+	return nil
 }
 
 // Playlist is a user playlist or a chart playlist.
